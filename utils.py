@@ -21,7 +21,8 @@ from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
 
-dict_dir = '/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/similarity_augment/dict/'
+# dict_dir = '/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/similarity_augment/dict/' # (ap) Problem: path not found
+dict_dir = './data/similarity_augment/dict/' # (ap) Solution
 with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
     cell_id2idx_dict = pickle.load(f)
 with open(dict_dir + "drug_name2idx_dict", 'rb') as f:

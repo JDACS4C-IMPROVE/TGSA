@@ -17,12 +17,20 @@ python -m pip install torch-sparse --no-cache-dir --no-index --find-links https:
 python -m pip install torch-cluster --no-cache-dir --no-index --find-links https://pytorch-geometric.com/whl/torch-1.6.0+cu102.html
 python -m pip install torch-spline-conv --no-cache-dir --no-index --find-links https://pytorch-geometric.com/whl/torch-1.6.0+cu102.html
 python -m pip install torch-geometric --no-cache-dir
+# python -m pip install torch-geometric==1.6.1 --no-cache-dir
+
+conda install -c rdkit rdkit --yes
+python -m pip install fitlog==0.9.13
 
 # My packages
 conda install -c conda-forge ipdb=0.13.9 --yes
 conda install -c conda-forge jupyterlab=3.2.0 --yes
 conda install -c conda-forge python-lsp-server=1.2.4 --yes
 
+# Check
+# python -c "import torch; print(torch.__version__)"
+# python -c "import torch; print(torch.version.cuda)"
+# python -c "import torch_geometric; print(torch_geometric.__version__)"
 
 # # creates the conda environment
 # PROJECT_DIR=$PWD

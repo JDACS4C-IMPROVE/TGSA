@@ -62,7 +62,7 @@ def main():
     train_loader, val_loader, test_loader = load_data(IC, drug_dict, cell_dict, edge_index, args)
     print(len(IC), len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset))
     print('mean degree:{}'.format(len(edge_index[0]) / 706))
-    args.num_feature = cell_dict['ACH-000001'].x.shape[1]
+    args.num_feature = cell_dict['ACH-000001'].x.shape[1] # (ap) TODO: error here (file issue)
     genes_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
     edge_index = get_STRING_graph(genes_path, args.edge)
     cluster_predefine = get_predefine_cluster(edge_index, genes_path, args.edge, args.device)

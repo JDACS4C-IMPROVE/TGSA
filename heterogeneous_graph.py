@@ -66,7 +66,6 @@ def arg_parse():
 
     return parser.parse_args(args=[])
 
-
     
 def computing_sim_matrix():
     if os.path.exists(dict_dir + "cell_sim_matrix") and  os.path.exists(dict_dir + "drug_sim_matrix"):

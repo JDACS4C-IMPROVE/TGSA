@@ -101,6 +101,7 @@ def save_cell_graph(genes_path, save_path):
 
 
 def get_STRING_graph(genes_path, thresh=0.95):
+    """ ... """
     save_path = os.path.join(genes_path, 'edge_index_PPI_{}.npy'.format(thresh))
 
     if not os.path.exists(save_path):
@@ -144,6 +145,7 @@ def get_STRING_graph(genes_path, thresh=0.95):
 
 
 def get_predefine_cluster(edge_index, save_path, thresh, device):
+    """ ... """
     save_path = os.path.join(save_path, 'cluster_predefine_PPI_{}.npy'.format(thresh))
     if not os.path.exists(save_path):
         g = Data(edge_index=torch.tensor(edge_index, dtype=torch.long), x=torch.zeros(706, 1))

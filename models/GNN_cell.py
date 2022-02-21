@@ -19,9 +19,9 @@ class GNN_cell(torch.nn.Module):
 
         for i in range(self.layer_cell):
             if i:
-                conv = GATConv(self.dim_cell, self.dim_cell)
+                conv = GATConv(self.dim_cell, self.dim_cell)  # layers 1 : (end-1)
             else:
-                conv = GATConv(self.num_feature, self.dim_cell)
+                conv = GATConv(self.num_feature, self.dim_cell)  # layer 0
             bn = torch.nn.BatchNorm1d(self.dim_cell, affine=False)  # True or False
             # activation = nn.PReLU(self.dim_cell)
 

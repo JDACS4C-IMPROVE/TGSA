@@ -14,10 +14,15 @@ class GNN_drug(torch.nn.Module):
 
         for i in range(self.layer_drug):
             if i:
-                block = nn.Sequential(nn.Linear(self.dim_drug, self.dim_drug), nn.ReLU(),
-                                      nn.Linear(self.dim_drug, self.dim_drug))
+                block = nn.Sequential(nn.Linear(self.dim_drug, self.dim_drug),
+                                      nn.ReLU(),
+                                      nn.Linear(self.dim_drug, self.dim_drug)
+                                      ) # layers 1 : (end-1)
             else:
-                block = nn.Sequential(nn.Linear(77, self.dim_drug), nn.ReLU(), nn.Linear(self.dim_drug, self.dim_drug))
+                block = nn.Sequential(nn.Linear(77, self.dim_drug),
+                                      nn.ReLU(),
+                                      nn.Linear(self.dim_drug, self.dim_drug)
+                                      ) # layer 0
             conv = GINConv(block)
             bn = torch.nn.BatchNorm1d(self.dim_drug)
 

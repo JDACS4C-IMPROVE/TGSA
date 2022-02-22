@@ -52,6 +52,36 @@ def train(model, loader, criterion, opt, device):
     return loss
 
 
+def predict(model, loader, device):
+    """ ap: created from validate() """
+    model.eval()
+
+    y_true = []
+    y_pred = []
+
+    total_loss = 0
+    with torch.no_grad():
+        for data in tqdm(loader, desc='Iteration'):
+            drug, cell, label = data
+            if isinstance(cell, list):
+                drug, cell, label = drug.to(device), [feat.to(device) for feat in cell], label.to(device)
+            else:
+                drug, cell, label = drug.to(device), cell.to(device), label.to(device)
+            output = model(drug, cell)
+            total_loss += F.mse_loss(output, label.view(-1, 1).float(), reduction='sum')
+            y_true.append(label.view(-1, 1))
+            y_pred.append(output)
+
+    y_true = torch.cat(y_true, dim=0)
+    y_pred = torch.cat(y_pred, dim=0)
+    # rmse = torch.sqrt(total_loss / len(loader.dataset))
+    # MAE = mean_absolute_error(y_true.cpu(), y_pred.cpu())
+    # r2 = r2_score(y_true.cpu(), y_pred.cpu())
+    # r = pearsonr(y_true.cpu().numpy().flatten(), y_pred.cpu().numpy().flatten())[0]
+
+    return y_true, y_pred
+
+
 def validate(model, loader, device):
     model.eval()
 
@@ -80,6 +110,7 @@ def validate(model, loader, device):
 
     return rmse, MAE, r2, r
 
+
 def gradient(model, drug_name, cell_name, drug_dict, cell_dict, edge_index, args):
     cell_dict[cell_name].edge_index = torch.tensor(edge_index, dtype=torch.long)
     drug = Batch.from_data_list([drug_dict[drug_name]]).to(args.device)
@@ -101,6 +132,7 @@ def gradient(model, drug_name, cell_name, drug_dict, cell_dict, edge_index, args
     cell_node_importance = cell_node_importance/cell_node_importance.sum()
     sorted, indices = torch.sort(cell_node_importance, descending=True)
     return ic50, indices.cpu()
+
 
 def inference(model, drug_dict, cell_dict, edge_index, save_name, args):
     model.eval()
@@ -224,22 +256,32 @@ def _collate_CDR(samples):
 
 def load_data(IC, drug_dict, cell_dict, edge_index, args):
     if args.setup == 'known':
-        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
-        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+        train_set, val_test_set = train_test_split(IC,
+                                                   test_size=0.2,
+                                                   random_state=42,
+                                                   stratify=IC['Cell line name'])
+        val_set, test_set = train_test_split(val_test_set,
+                                             test_size=0.5,
+                                             random_state=42,
                                              stratify=val_test_set['Cell line name'])
 
     elif args.setup == 'leave_drug_out':
         ## scaffold
-        smiles_list = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')[
-            ['CanonicalSMILES', 'drug_name']]
-        train_set, val_set, test_set = scaffold_split(IC, smiles_list, seed=42)
+        smiles_list = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')[['CanonicalSMILES', 'drug_name']]
+        train_set, val_set, test_set = scaffold_split(IC,
+                                                      smiles_list,
+                                                      seed=42)
 
     elif args.setup == 'leave_cell_out':
         ## stratify
         cell_info = IC[['Tissue', 'Cell line name']].drop_duplicates()
-        train_cell, val_test_cell = train_test_split(cell_info, stratify=cell_info['Tissue'], test_size=0.4,
+        train_cell, val_test_cell = train_test_split(cell_info,
+                                                     stratify=cell_info['Tissue'],
+                                                     test_size=0.4,
                                                      random_state=42)
-        val_cell, test_cell = train_test_split(val_test_cell, stratify=val_test_cell['Tissue'], test_size=0.5,
+        val_cell, test_cell = train_test_split(val_test_cell,
+                                               stratify=val_test_cell['Tissue'],
+                                               test_size=0.5,
                                                random_state=42)
 
         train_set = IC[IC['Cell line name'].isin(train_cell['Cell line name'])]
@@ -278,11 +320,9 @@ def load_data(IC, drug_dict, cell_dict, edge_index, args):
         test_dataset = Dataset(drug_dict, cell_dict, test_set, edge_index=edge_index)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn,
-                              num_workers=4
-                              )
+                              num_workers=4)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn,
-                            num_workers=4
-                            )
+                            num_workers=4)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn,
                              num_workers=4)
 
@@ -650,6 +690,7 @@ def scaffold_split(dataset, smiles_name_list, frac_train=0.6, frac_valid=0.2, fr
 
     return train_dataset, valid_dataset, test_dataset
 
+
 def train_SA(train_loader, model, loss_fn, optimizer, args):
     model.train()
     for step, data in enumerate(tqdm(train_loader, desc='Iteration')):
@@ -688,6 +729,7 @@ def validate_SA(loader, model, args):
 
     return rmse, MAE, r2, r 
 
+
 class MyDataset_SA(Dataset):
     def __init__(self, IC):
         super(MyDataset_SA, self).__init__()
@@ -713,6 +755,7 @@ def load_data_SA(args):
     val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
     return train_loader, val_loader, test_loader
+
 
 def load_graph_data_SA(args):
     drug_id2graph_dict = np.load('./data/Drugs/drug_feature_graph.npy', allow_pickle=True).item()

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
-from utils import load_data
+from utils import load_data, load_data_lc
 from utils import EarlyStopping, set_random_seed
 from utils import train, validate
 from preprocess_gene import get_STRING_graph, get_predefine_cluster
@@ -40,6 +40,7 @@ def RMSE(y, f):
     from math import sqrt
     rmse = sqrt(((y - f)**2).mean(axis=0))
     return rmse
+
 
 def MSE(y, f):
     mse = ((y - f)**2).mean(axis=0)
@@ -76,6 +77,16 @@ def arg_parse():
     parser.add_argument('--weight_path', type=str, default='',
                         help='filepath for pretrained weights')
     parser.add_argument('--mode', type=str, default='test', help='train or test')
+    parser.add_argument('--lc_dpath', required=False, default="lc_data", type=str,
+                        help="Path to lc data files. (default: lc_data).")
+    parser.add_argument('--gout', default=None, type=str,
+                        help="Global outdir to dump all the resusts.") # ap
+    parser.add_argument('--tr_file', required=False, default=None, type=str,
+                        help='Train data path (default: None).')
+    parser.add_argument('--vl_file', required=False, default=None, type=str,
+                        help='Val data path (default: None).')
+    parser.add_argument('--te_file', required=False, default=None, type=str,
+                        help='Test data path (default: None).')
     return parser.parse_args()
 
 
@@ -86,6 +97,15 @@ def main():
     args = arg_parse()
     set_random_seed(args.seed)
 
+    # ap
+    from pathlib import Path
+    fdir = Path(__file__).resolve().parent
+    if args.gout is not None:
+        outdir = fdir/args.gout
+    else:
+        outdir = fdir/"results"
+    os.makedirs(outdir, exist_ok=True)
+
     # drug_feature_graph.npy is generated in smile2graph.py 
     drug_dict = np.load('./data/Drugs/drug_feature_graph.npy', allow_pickle=True).item()
     print(f"Total drugs: {len(drug_dict)}") # ap
@@ -95,13 +115,37 @@ def main():
     edge_index = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/edge_index_PPI_{}.npy'.format(args.edge))
     IC = pd.read_csv('./data/PANCANCER_IC_82833_580_170.csv')
 
-    train_loader, val_loader, test_loader = load_data(IC, drug_dict, cell_dict, edge_index, args)
-    print("IC values: {}, Train: {}, Val: {}, Test: {}".format(
-          len(IC),
-          len(train_loader.dataset),
-          len(val_loader.dataset),
-          len(test_loader.dataset)))
-    print('mean degree: {}'.format(len(edge_index[0]) / 706)) # ap: what's that?
+    # Create data loaders
+    # import pdb; pdb.set_trace()
+    if args.tr_file is None:
+        train_loader, val_loader, test_loader = load_data(IC, drug_dict, cell_dict, edge_index, args)
+        print("IC values: {}, Train: {}, Val: {}, Test: {}".format(
+              len(IC),
+              len(train_loader.dataset),
+              len(val_loader.dataset),
+              len(test_loader.dataset)))
+        print('mean degree: {}'.format(len(edge_index[0]) / 706)) # ap: what's that?
+
+    # ap: Create data loaders
+    else:
+        lc_dpath = Path(args.lc_dpath)
+        df_tr = pd.read_csv(lc_dpath/(args.tr_file + ".csv"))
+        df_vl = pd.read_csv(lc_dpath/(args.vl_file + ".csv"))
+        df_te = pd.read_csv(lc_dpath/(args.te_file + ".csv"))
+        # train_data = load_data_lc(df_tr, drug_dict, cell_dict, edge_index, args)
+        # val_data = load_data_lc(df_vl, drug_dict, cell_dict, edge_index, args)
+        # test_data = load_data_lc(df_te, drug_dict, cell_dict, edge_index, args)
+        train_loader = load_data_lc(df_tr, drug_dict, cell_dict, edge_index, args, shuffle=True)
+        val_loader = load_data_lc(df_vl, drug_dict, cell_dict, edge_index, args, shuffle=False)
+        test_loader = load_data_lc(df_te, drug_dict, cell_dict, edge_index, args, shuffle=False)
+        # from torch.utils.data import DataLoader
+        # train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True,
+        #                           collate_fn=collate_fn, num_workers=4)
+        # val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False,
+        #                         collate_fn=collate_fn, num_workers=4)
+        # test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False,
+        #                          collate_fn=collate_fn, num_workers=4)
+
 
     args.num_feature = cell_dict['ACH-000001'].x.shape[1]
     genes_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
@@ -188,10 +232,10 @@ def main():
             round(test_rmse.item(), 4), round(test_MAE, 4), round(test_r2, 4), round(test_r, 4)))
 
     # ap: Add code to creade dir for results
-    from pathlib import Path
-    fdir = Path(__file__).resolve().parent
-    res_dir = fdir/"ap_res"
-    os.makedirs(res_dir, exist_ok=True)
+    # from pathlib import Path
+    # fdir = Path(__file__).resolve().parent
+    # res_dir = fdir/"ap_res"
+    # os.makedirs(res_dir, exist_ok=True)
 
     val_scheme = args.setup
     model_name = "TGDRP"
@@ -204,14 +248,14 @@ def main():
     preds = pd.DataFrame({"True": te_true, "Pred": te_pred})
     # preds_file_name = f"preds_{val_scheme}_{model_st}_{dataset}.csv"
     preds_file_name = f"preds_{val_scheme}_{model_name}.csv"
-    preds.to_csv(res_dir/preds_file_name, index=False)
+    preds.to_csv(outdir/preds_file_name, index=False)
 
     # ap: Add code to calc and dump scores
     ccp_scr = Pearson(te_true, te_pred)
     rmse_scr = RMSE(te_true, te_pred)
     scores = {"ccp": ccp_scr, "rmse": rmse_scr}
     import json
-    with open(res_dir/f"scores_{val_scheme}_{model_name}.json", "w", encoding="utf-8") as f:
+    with open(outdir/f"scores_{val_scheme}_{model_name}.json", "w", encoding="utf-8") as f:
         json.dump(scores, f, ensure_ascii=False, indent=4)
 
     # from scipy.stats import pearsonr

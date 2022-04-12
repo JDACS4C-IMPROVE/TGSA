@@ -329,6 +329,33 @@ def load_data(IC, drug_dict, cell_dict, edge_index, args):
     return train_loader, val_loader, test_loader
 
 
+def load_data_lc(IC, drug_dict, cell_dict, edge_index, args, shuffle):
+    """ (ap) modified load_data() for generating learning curves. """
+    if args.model == 'TCNN':
+        Dataset = MyDataset_name
+        collate_fn = None
+        dataset = Dataset(drug_dict, cell_dict, IC)
+
+    elif args.model == 'GraphDRP':
+        Dataset = MyDataset_name
+        collate_fn = _collate_drp
+        dataset = Dataset(drug_dict, cell_dict, IC)
+
+    elif args.model == 'DeepCDR':
+        Dataset = MyDataset_CDR
+        collate_fn = _collate_CDR
+        dataset = Dataset(drug_dict, cell_dict, IC)
+
+    else:
+        Dataset = MyDataset
+        collate_fn = _collate
+        dataset = Dataset(drug_dict, cell_dict, IC, edge_index=edge_index)
+
+    data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=shuffle,
+                              collate_fn=collate_fn, num_workers=4)
+    return data_loader
+
+
 def prepare_val_data(IC, drug_dict, cell_dict, edge_index, split_idx, fold, model, args):
     train_set = IC.iloc[split_idx['train'][fold], :]
     val_set = IC.iloc[split_idx['val'][fold], :]

@@ -14,36 +14,33 @@ Cancel changes
 
 ## Requirements
 - Please install the environment using anaconda3;  
-  conda create -n TGSA python=3.6
-- Install the necessary packages.  
-  conda install -c rdkit rdkit  
+  conda create -n TGSA python=3.7
+- Install the necessary packages.
+- pip install git+https://github.com/ECP-CANDLE/candle_lib@develop   
+  wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_cluster-1.5.9-cp37-cp37m-linux_x86_64.whl   
+  wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_scatter-2.0.9-cp37-cp37m-linux_x86_64.whl   
+  wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_sparse-0.6.12-cp37-cp37m-linux_x86_64.whl         
+  wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_spline_conv-1.2.1-cp37-cp37m-linux_x86_64.whl   
+  pip install *.whl
+
+  pip install rdkit   
   pip install fitlog   
-  pip install torch (1.6.0)   
-  pip install torch-cluster (1.5.9) (https://pytorch-geometric.com/whl/)  
-  pip install torch-scatter (2.0.6) (https://pytorch-geometric.com/whl/)   
-  pip install torch-sparse (0.6.9) (https://pytorch-geometric.com/whl/)   
-  pip install torch-spline-conv (1.2.1) (https://pytorch-geometric.com/whl/)   
-  pip install torch-geometric (1.6.1)  
+
+  pip install dgllife==0.3.2   
+  pip install dgl==0.9.0   
+  pip install numpy==1.21.5   
+  pip install pandas==1.3.5   
+  pip install scikit-learn==1.0.2   
+  pip install scikit-image==0.16.2   
+  pip install networkx==2.6.3   
+  pip install h5py==3.8.0   
 
 # Implementation
 ## Step1: Data Preprocessing
-- `data/CellLines_DepMap/CCLE_580_18281/census_706/` - Raw genetic profiles from CCLE and the processed features. You can also preprocess your own data with `preprocess_gene.py`.
+  python pilot_preprocessing.py
+## Step2: Model Training
+  python [candle_train.py](candle_train.py)
+## Step3: Model Testing
+  python test.py
 
-- `data/similarity_augment/` - Directory `edge` contains edges of heterogeneous graphs; directory `dict` contains necessary data and dictionaries for mapping between drug data or cell line data. 
 
-- `data/Drugs/drug_smiles.csv` - SMILES for 170 drugs. You can generate pyg graph object with `smiles2graph.py`
-
-- `data/PANCANCER_IC_82833_580_170.csv` - There are 82833 ln(IC50) values across 580 cel lines and 170 drugs.
-
-- `data/9606.protein.links.detailed.v11.0.txt` and `data/9606.protein.info.v11.0.txt` - Extracted from https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
-
-## Step2: Model Training/Testing
-- You can run `python main.py --mode "train"` to train TGDRP or run `python main.py --mode "test"` to test trained TGDRP.
-
-## Step3: Similarity Augment
-- First, you can run `heterogeneous_graph.py` to generate edges of heterogeneous graphs.
-
-- Then, you can run `main_SA.py` to generate node features of heterogeneous graphs using two GNNs from TGDRP/TGDRP_pre and to fine-tune sequentially the remained parameters from TGDRP/TGDRP_pre.  To be specific, you can use the instruction `python main_SA.py --mode "train"/"test" --pretrain 0/1` to fine-tune TGDRP/TGDRP_pre or to test fine-tuned SA/SA_pre.  
-
-# License
-MIT

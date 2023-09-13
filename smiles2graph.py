@@ -2,7 +2,6 @@ from rdkit import Chem
 import numpy as np
 import pandas as pd
 import torch
-import torch_geometric
 from torch_geometric.data import Data
 from dgllife.utils import *
 
@@ -97,13 +96,13 @@ def smiles2graph(mol):
     return graph
 
 
-def save_drug_graph():
-    smiles = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')
-    drug_dict = {}
-    for i in range(len(smiles)):
-        drug_dict[smiles.iloc[i, 0]] = smiles2graph(smiles.iloc[i, 2])
-    np.save('./data/feature/drug_feature_graph.npy', drug_dict)
-    return drug_dict
+# def save_drug_graph():
+#     smiles = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')
+#     drug_dict = {}
+#     for i in range(len(smiles)):
+#         drug_dict[smiles.iloc[i, 0]] = smiles2graph(smiles.iloc[i, 2])
+#     np.save('./data/feature/drug_feature_graph.npy', drug_dict)
+#     return drug_dict
 
 
 if __name__ == '__main__':

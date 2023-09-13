@@ -39,17 +39,17 @@ def get_genes_graph(genes_path, save_path, method='pearson', thresh=0.95, p_valu
     return n, edge_index
 
 
-def ensp_to_hugo_map():
-    with open('./data/9606.protein.info.v11.0.txt') as csv_file:
+def ensp_to_hugo_map(fn='./benchmark_dataset_generator/csa_data/raw_data/9606.protein.info.v11.0.txt'):
+    with open(fn) as csv_file:
         next(csv_file)  # Skip first line
         csv_reader = csv.reader(csv_file, delimiter='\t')
         ensp_map = {row[0]: row[1] for row in csv_reader if row[0] != ""}
 
     return ensp_map
 
-
-def hugo_to_ncbi_map():
-    with open('./data/enterez_NCBI_to_hugo_gene_symbol_march_2019.txt') as csv_file:
+# create mapping of the IDs
+def hugo_to_ncbi_map(fn='./benchmark_dataset_generator/csa_data/raw_data/enterez_NCBI_to_hugo_gene_symbol_march_2019.txt'):
+    with open(fn) as csv_file:
         next(csv_file)  # Skip first line
         csv_reader = csv.reader(csv_file, delimiter='\t')
         hugo_map = {row[0]: int(row[1]) for row in csv_reader if row[1] != ""}
@@ -96,11 +96,10 @@ def save_cell_graph(genes_path, save_path):
         # cell_dict[i] = [np.array(exp.loc[i], dtype=np.float32), np.array(cn.loc[i], dtype=np.float32),
         #                 np.array(mu.loc[i], dtype=np.float32)]
 
-    np.save(os.path.join(save_path, 'cell_feature_cn_std.npy'), cell_dict)
+    np.save(os.path.join(save_path, 'cell_feature_all.npy'), cell_dict)
     print("finish saving cell mut data!")
 
-
-def get_STRING_graph(genes_path, thresh=0.95):
+def get_STRING_graph(genes_path, edge_fn='./benchmark_dataset_generator/csa_data/raw_data/9606.protein.links.detailed.v11.0.txt', thresh=0.95):
     save_path = os.path.join(genes_path, 'edge_index_PPI_{}.npy'.format(thresh))
 
     if not os.path.exists(save_path):
@@ -112,7 +111,7 @@ def get_STRING_graph(genes_path, thresh=0.95):
         # load STRING
         ensp_map = ensp_to_hugo_map()
         hugo_map = hugo_to_ncbi_map()
-        edges = pd.read_csv('./data/9606.protein.links.detailed.v11.0.txt', sep=' ')
+        edges = pd.read_csv(edge_fn, sep=' ')
 
         # edge_index
         selected_edges = edges['combined_score'] > (thresh * 1000)
@@ -135,18 +134,24 @@ def get_STRING_graph(genes_path, thresh=0.95):
         # print(len(gene_list))
         # print(thresh, len(edge_index[0]) / len(gene_list))
         np.save(
-            os.path.join('./data/CellLines_DepMap/CCLE_580_18281/census_706/', 'edge_index_PPI_{}.npy'.format(thresh)),
+            os.path.join(gene_path, 'edge_index_PPI_{}.npy'.format(thresh)),
             edge_index)
     else:
         edge_index = np.load(save_path)
 
     return edge_index
 
-
-def get_predefine_cluster(edge_index, save_path, thresh, device):
+'''
+# Added by Jun Jiang 
+why not use this?
+# predefine cluster 
+# "https://stringdb-static.org/download/clusters.proteins.v11.5/9606.clusters.proteins.v11.5.txt.gz"
+# "https://stringdb-static.org/download/clusters.info.v11.5/9606.clusters.info.v11.5.txt.gz"
+'''
+def get_predefine_cluster(edge_index, save_path, thresh, device, selected_gene_num=706):
     save_path = os.path.join(save_path, 'cluster_predefine_PPI_{}.npy'.format(thresh))
     if not os.path.exists(save_path):
-        g = Data(edge_index=torch.tensor(edge_index, dtype=torch.long), x=torch.zeros(706, 1))
+        g = Data(edge_index=torch.tensor(edge_index, dtype=torch.long), x=torch.zeros(selected_gene_num, 1))
         g = Batch.from_data_list([g])
         cluster_predefine = {}
         for i in range(5):
@@ -167,4 +172,5 @@ if __name__ == '__main__':
     gene_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
     save_path = './data/CellLines_DepMap/CCLE_580_18281/census_706'
     # get_genes_graph(gene_path,save_path, thresh=0.53)
-    save_cell_graph(gene_path, save_path)
+    # save_cell_graph(gene_path, save_path)
+    #save_cell_graph_all(gene_path, save_path)

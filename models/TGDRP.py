@@ -10,7 +10,7 @@ class TGDRP(nn.Module):
         self.batch_size = args.batch_size
         self.layer_drug = args.layer_drug
         self.dim_drug = args.dim_drug
-        self.num_feature = args.num_feature
+        self.num_feature = args.cell_feature_num
         self.layer_cell = args.layer
         self.dim_cell = args.hidden_dim
         self.dropout_ratio = args.dropout_ratio

@@ -13,7 +13,7 @@ def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=42,
                         help='random seed (default: 42)')
-    parser.add_argument('--device', type=str, default='cuda:7',
+    parser.add_argument('--device', type=str, default='cuda:0',
                         help='device')
     parser.add_argument('--knn', type=int, default=5,
                         help='k-nearest-neighbour')

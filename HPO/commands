@@ -1,0 +1,8 @@
+
+
+scp ac.jjiang@lambda0.cels.anl.gov:/homes/ac.jjiang/project/Singularity/images/TGSA.sif ./
+
+
+supervisor lambda GA cfg-1.sh
+
+supervisor polaris GA cfg-1.sh

@@ -21,34 +21,37 @@ from sklearn.metrics import r2_score, mean_absolute_error
 from scipy.stats import pearsonr
 from tqdm import tqdm
 
-dict_dir = '/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/similarity_augment/dict/'
-with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
-    cell_id2idx_dict = pickle.load(f)
-with open(dict_dir + "drug_name2idx_dict", 'rb') as f:
-    drug_name2idx_dict = pickle.load(f)
-with open(dict_dir + "cell_idx2id_dict", 'rb') as f:
-    cell_idx2id_dict = pickle.load(f)
-with open(dict_dir + "drug_idx2name_dict", 'rb') as f:
-    drug_idx2name_dict = pickle.load(f)
-
+# dict_dir = './data/similarity_augment/dict/'
+# with open(dict_dir + "cell_id2idx_dict", 'rb') as f:
+#     cell_id2idx_dict = pickle.load(f)
+# with open(dict_dir + "drug_name2idx_dict", 'rb') as f:
+#     drug_name2idx_dict = pickle.load(f)
+# with open(dict_dir + "cell_idx2id_dict", 'rb') as f:
+#     cell_idx2id_dict = pickle.load(f)
+# with open(dict_dir + "drug_idx2name_dict", 'rb') as f:
+#     drug_idx2name_dict = pickle.load(f)
+#
 
 def train(model, loader, criterion, opt, device):
     model.train()
 
+    total_loss = torch.tensor(0.0).cuda(device)
     for idx, data in enumerate(tqdm(loader, desc='Iteration')):
         drug, cell, label = data
+        # label = torch.tensor(label, dtype=torch.long, device=device)
         if isinstance(cell, list):
             drug, cell, label = drug.to(device), [feat.to(device) for feat in cell], label.to(device)
         else:
             drug, cell, label = drug.to(device), cell.to(device), label.to(device)
+        opt.zero_grad()
         output = model(drug, cell)
         loss = criterion(output, label.view(-1, 1).float())
-        opt.zero_grad()
+        total_loss += loss
         loss.backward()
         opt.step()
-
-    print('Train Loss:{}'.format(loss))
-    return loss
+    rmse = torch.sqrt(total_loss / len(loader.dataset))
+    print('Train Loss:{}'.format(rmse))
+    return rmse
 
 
 def validate(model, loader, device):
@@ -57,7 +60,7 @@ def validate(model, loader, device):
     y_true = []
     y_pred = []
 
-    total_loss = 0
+    total_loss = torch.tensor(0.0).cuda(device)
     with torch.no_grad():
         for data in tqdm(loader, desc='Iteration'):
             drug, cell, label = data
@@ -72,7 +75,8 @@ def validate(model, loader, device):
 
     y_true = torch.cat(y_true, dim=0)
     y_pred = torch.cat(y_pred, dim=0)
-    rmse = torch.sqrt(total_loss / len(loader.dataset))
+    rmse = torch.sqrt(total_loss/len(loader.dataset))
+    n = len(loader.dataset)
     MAE = mean_absolute_error(y_true.cpu(), y_pred.cpu())
     r2 = r2_score(y_true.cpu(), y_pred.cpu())
     r = pearsonr(y_true.cpu().numpy().flatten(), y_pred.cpu().numpy().flatten())[0]
@@ -101,52 +105,51 @@ def gradient(model, drug_name, cell_name, drug_dict, cell_dict, edge_index, args
     sorted, indices = torch.sort(cell_node_importance, descending=True)
     return ic50, indices.cpu()
 
-def inference(model, drug_dict, cell_dict, edge_index, save_name, args):
-    model.eval()
-    IC = pd.read_csv("/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/IC50_GDSC/PANCANCER_IC_82833_580_170.csv")
-    if args.setup == 'known':
-        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
-        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
-                                             stratify=val_test_set['Cell line name'])
-        
-    cell_table = IC[["DepMap_ID", "stripped_cell_line_name"]].drop_duplicates(keep='first')
-    drug_table = IC["Drug name"].drop_duplicates(keep='first').to_frame()
-    cell_table['value'] = 1
-    drug_table['value'] = 1
-    drug_cell_table = drug_table.merge(cell_table, how='left', on='value')
-    del drug_cell_table['value']
-    unknown_set = drug_cell_table.append(IC[["Drug name", "DepMap_ID", "stripped_cell_line_name"]])
-    unknown_set.drop_duplicates(keep=False, inplace=True)
-    dataset = {'train':train_set, 'val':val_set, 'test':test_set, 'unknown':unknown_set}
-    writer = pd.ExcelWriter(save_name)
-    for dataset_name, data in dataset.items():
-        data.reset_index(drop=True, inplace=True)
-        IC50_pred = []
-        with torch.no_grad():
-            drug_name, cell_ID, cell_line_name = data['Drug name'], data["DepMap_ID"], data["stripped_cell_line_name"]
-            for cell in cell_ID:
-                cell_dict[cell].edge_index = torch.tensor(edge_index, dtype=torch.long)
-            drug_list = [drug_dict[name] for name in drug_name]
-            cell_list = [cell_dict[name] for name in cell_ID]
-            batch_size = 2048
-            batch_num = math.ceil(len(drug_list)/batch_size)
-            for index in range(batch_num):
-                drug = Batch.from_data_list(drug_list[index*batch_size:(index+1)*batch_size]).to(args.device)
-                cell = Batch.from_data_list(cell_list[index*batch_size:(index+1)*batch_size]).to(args.device)
-                y_pred = model(drug, cell)
-                IC50_pred.append(y_pred)
-            IC50_pred = torch.cat(IC50_pred, dim=0)
-        table = pd.concat([drug_name, cell_ID, cell_line_name], axis=1)
-        if dataset_name != 'unknown':
-            table["IC50"] = data["IC50"]
-        table["IC50_Pred"] = IC50_pred.cpu().numpy()
-        if dataset_name != 'unknown':
-            table["Abs_error"] = np.abs(IC50_pred.cpu().numpy()-np.array(table["IC50"]).reshape(-1,1))
-        table.to_excel(writer, sheet_name=dataset_name, index=False)
-        torch.cuda.empty_cache()
-    writer.close()
-        
-        
+# def inference(model, drug_dict, cell_dict, edge_index, save_name, args):
+#     model.eval()
+#     IC = pd.read_csv("/data/ouyangzhenqiu/project/cloud_ecg/TGSA/data/IC50_GDSC/PANCANCER_IC_82833_580_170.csv")
+#     if args.setup == 'known':
+#         train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
+#         val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+#                                              stratify=val_test_set['Cell line name'])
+#
+#     cell_table = IC[["improve_sample_id", "stripped_cell_line_name"]].drop_duplicates(keep='first')
+#     drug_table = IC["Drug name"].drop_duplicates(keep='first').to_frame()
+#     cell_table['value'] = 1
+#     drug_table['value'] = 1
+#     drug_cell_table = drug_table.merge(cell_table, how='left', on='value')
+#     del drug_cell_table['value']
+#     unknown_set = drug_cell_table.append(IC[["Drug name", "improve_sample_id", "stripped_cell_line_name"]])
+#     unknown_set.drop_duplicates(keep=False, inplace=True)
+#     dataset = {'train':train_set, 'val':val_set, 'test':test_set, 'unknown':unknown_set}
+#     writer = pd.ExcelWriter(save_name)
+#     for dataset_name, data in dataset.items():
+#         data.reset_index(drop=True, inplace=True)
+#         IC50_pred = []
+#         with torch.no_grad():
+#             drug_name, cell_ID, cell_line_name = data['Drug name'], data["improve_sample_id"], data["stripped_cell_line_name"]
+#             for cell in cell_ID:
+#                 cell_dict[cell].edge_index = torch.tensor(edge_index, dtype=torch.long)
+#             drug_list = [drug_dict[name] for name in drug_name]
+#             cell_list = [cell_dict[name] for name in cell_ID]
+#             batch_size = 2048
+#             batch_num = math.ceil(len(drug_list)/batch_size)
+#             for index in range(batch_num):
+#                 drug = Batch.from_data_list(drug_list[index*batch_size:(index+1)*batch_size]).to(args.device)
+#                 cell = Batch.from_data_list(cell_list[index*batch_size:(index+1)*batch_size]).to(args.device)
+#                 y_pred = model(drug, cell)
+#                 IC50_pred.append(y_pred)
+#             IC50_pred = torch.cat(IC50_pred, dim=0)
+#         table = pd.concat([drug_name, cell_ID, cell_line_name], axis=1)
+#         if dataset_name != 'unknown':
+#             table["ic50"] = data["ic50"]
+#         table["IC50_Pred"] = IC50_pred.cpu().numpy()
+#         if dataset_name != 'unknown':
+#             table["Abs_error"] = np.abs(IC50_pred.cpu().numpy()-np.array(table["ic50"]).reshape(-1,1))
+#         table.to_excel(writer, sheet_name=dataset_name, index=False)
+#         torch.cuda.empty_cache()
+#     writer.close()
+#
 class MyDataset(Dataset):
     def __init__(self, drug_dict, cell_dict, IC, edge_index):
         super(MyDataset, self).__init__()
@@ -220,20 +223,19 @@ def _collate_CDR(samples):
     mu = [torch.tensor(cell[2]) for cell in cells]
     return batched_graph, [torch.stack(exp, 0), torch.stack(cn, 0), torch.stack(mu, 0)], torch.tensor(labels)
 
-
-def load_data(IC, drug_dict, cell_dict, edge_index, args):
-    if args.setup == 'known':
+def load_gene_data(IC, drug_dict, cell_dict, edge_index, setup, model, batch_size):
+    if setup == 'known':
         train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
         val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
                                              stratify=val_test_set['Cell line name'])
 
-    elif args.setup == 'leave_drug_out':
+    elif setup == 'leave_drug_out':
         ## scaffold
         smiles_list = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')[
             ['CanonicalSMILES', 'drug_name']]
         train_set, val_set, test_set = scaffold_split(IC, smiles_list, seed=42)
 
-    elif args.setup == 'leave_cell_out':
+    elif setup == 'leave_cell_out':
         ## stratify
         cell_info = IC[['Tissue', 'Cell line name']].drop_duplicates()
         train_cell, val_test_cell = train_test_split(cell_info, stratify=cell_info['Tissue'], test_size=0.4,
@@ -248,21 +250,21 @@ def load_data(IC, drug_dict, cell_dict, edge_index, args):
     else:
         raise ValueError
 
-    if args.model == 'TCNN':
+    if model == 'TCNN':
         Dataset = MyDataset_name
         collate_fn = None
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
         val_dataset = Dataset(drug_dict, cell_dict, val_set)
         test_dataset = Dataset(drug_dict, cell_dict, test_set)
 
-    elif args.model == 'GraphDRP':
+    elif model == 'GraphDRP':
         Dataset = MyDataset_name
         collate_fn = _collate_drp
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
         val_dataset = Dataset(drug_dict, cell_dict, val_set)
         test_dataset = Dataset(drug_dict, cell_dict, test_set)
 
-    elif args.model == 'DeepCDR':
+    elif model == 'DeepCDR':
         Dataset = MyDataset_CDR
         collate_fn = _collate_CDR
         train_dataset = Dataset(drug_dict, cell_dict, train_set)
@@ -276,13 +278,81 @@ def load_data(IC, drug_dict, cell_dict, edge_index, args):
         val_dataset = Dataset(drug_dict, cell_dict, val_set, edge_index=edge_index)
         test_dataset = Dataset(drug_dict, cell_dict, test_set, edge_index=edge_index)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn,
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn,
                               num_workers=4
                               )
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn,
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn,
                             num_workers=4
                             )
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, collate_fn=collate_fn,
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn,
+                             num_workers=4)
+
+    return train_loader, val_loader, test_loader
+
+
+
+def load_data(IC, drug_dict, cell_dict, edge_index, setup, model, batch_size):
+    if setup == 'known':
+        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42, stratify=IC['Cell line name'])
+        val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42,
+                                             stratify=val_test_set['Cell line name'])
+
+    elif setup == 'leave_drug_out':
+        ## scaffold
+        smiles_list = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')[
+            ['CanonicalSMILES', 'drug_name']]
+        train_set, val_set, test_set = scaffold_split(IC, smiles_list, seed=42)
+
+    elif setup == 'leave_cell_out':
+        ## stratify
+        cell_info = IC[['Tissue', 'Cell line name']].drop_duplicates()
+        train_cell, val_test_cell = train_test_split(cell_info, stratify=cell_info['Tissue'], test_size=0.4,
+                                                     random_state=42)
+        val_cell, test_cell = train_test_split(val_test_cell, stratify=val_test_cell['Tissue'], test_size=0.5,
+                                               random_state=42)
+
+        train_set = IC[IC['Cell line name'].isin(train_cell['Cell line name'])]
+        val_set = IC[IC['Cell line name'].isin(val_cell['Cell line name'])]
+        test_set = IC[IC['Cell line name'].isin(test_cell['Cell line name'])]
+
+    else:
+        raise ValueError
+
+    if model == 'TCNN':
+        Dataset = MyDataset_name
+        collate_fn = None
+        train_dataset = Dataset(drug_dict, cell_dict, train_set)
+        val_dataset = Dataset(drug_dict, cell_dict, val_set)
+        test_dataset = Dataset(drug_dict, cell_dict, test_set)
+
+    elif model == 'GraphDRP':
+        Dataset = MyDataset_name
+        collate_fn = _collate_drp
+        train_dataset = Dataset(drug_dict, cell_dict, train_set)
+        val_dataset = Dataset(drug_dict, cell_dict, val_set)
+        test_dataset = Dataset(drug_dict, cell_dict, test_set)
+
+    elif model == 'DeepCDR':
+        Dataset = MyDataset_CDR
+        collate_fn = _collate_CDR
+        train_dataset = Dataset(drug_dict, cell_dict, train_set)
+        val_dataset = Dataset(drug_dict, cell_dict, val_set)
+        test_dataset = Dataset(drug_dict, cell_dict, test_set)
+
+    else:
+        Dataset = MyDataset
+        collate_fn = _collate
+        train_dataset = Dataset(drug_dict, cell_dict, train_set, edge_index=edge_index)
+        val_dataset = Dataset(drug_dict, cell_dict, val_set, edge_index=edge_index)
+        test_dataset = Dataset(drug_dict, cell_dict, test_set, edge_index=edge_index)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn,
+                              num_workers=4
+                              )
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn,
+                            num_workers=4
+                            )
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn,
                              num_workers=4)
 
     return train_loader, val_loader, test_loader
@@ -336,7 +406,7 @@ def prepare_val_data(IC, drug_dict, cell_dict, edge_index, split_idx, fold, mode
 def get_idx_split_cell(dataset, k_splits=5):
     split_idx = {}
 
-    cell_info = dataset[['Tissue', 'DepMap_ID']].drop_duplicates()
+    cell_info = dataset[['Tissue', 'improve_sample_id']].drop_duplicates()
     cell_info.reset_index(drop=True, inplace=True)
 
     root_idx_dir = './data_split/{}_fold/cell'.format(k_splits)
@@ -344,14 +414,14 @@ def get_idx_split_cell(dataset, k_splits=5):
         os.makedirs(root_idx_dir)
         cross_val_fold = StratifiedKFold(n_splits=k_splits, shuffle=True, random_state=42)
         for train_val_name, test_name in cross_val_fold.split(cell_info, cell_info['Tissue']):
-            train_name, val_name = train_test_split(cell_info.iloc[train_val_name]['DepMap_ID'],
+            train_name, val_name = train_test_split(cell_info.iloc[train_val_name]['improve_sample_id'],
                                                     stratify=cell_info.iloc[train_val_name]['Tissue'],
                                                     test_size=1 / (k_splits - 1))
-            test_name = cell_info.iloc[test_name]['DepMap_ID']
+            test_name = cell_info.iloc[test_name]['improve_sample_id']
 
-            train_index = dataset[dataset['DepMap_ID'].isin(train_name)].index.tolist()
-            val_index = dataset[dataset['DepMap_ID'].isin(val_name)].index.tolist()
-            test_index = dataset[dataset['DepMap_ID'].isin(test_name)].index.tolist()
+            train_index = dataset[dataset['improve_sample_id'].isin(train_name)].index.tolist()
+            val_index = dataset[dataset['improve_sample_id'].isin(val_name)].index.tolist()
+            test_index = dataset[dataset['improve_sample_id'].isin(test_name)].index.tolist()
 
             f_train_w = csv.writer(open(root_idx_dir + '/train.index', 'a+'))
             f_val_w = csv.writer(open(root_idx_dir + '/val.index', 'a+'))
@@ -374,7 +444,7 @@ def get_idx_split_cell(dataset, k_splits=5):
 def get_idx_split_drug(dataset, k_splits=5):
     split_idx = {}
     smiles_name_list = pd.read_csv('./data/IC50_GDSC/drug_smiles.csv')[['CanonicalSMILES', 'drug_name']]
-    pointer = np.array(list(set(dataset['Drug name'])))
+    pointer = np.array(list(set(dataset['improve_chem_id'])))
 
     root_idx_dir = './data_split/{}_fold/drug'.format(k_splits)
 
@@ -392,9 +462,9 @@ def get_idx_split_drug(dataset, k_splits=5):
             train_name, val_name = train_test_split(remain_name, test_size=1 / (k_splits - 1))
             train_name, val_name, test_name = pointer[train_name], pointer[val_name], pointer[test_name]
 
-            train_index = dataset[dataset['Drug name'].isin(train_name)].index.tolist()
-            val_index = dataset[dataset['Drug name'].isin(val_name)].index.tolist()
-            test_index = dataset[dataset['Drug name'].isin(test_name)].index.tolist()
+            train_index = dataset[dataset['improve_chem_id'].isin(train_name)].index.tolist()
+            val_index = dataset[dataset['improve_chem_id'].isin(val_name)].index.tolist()
+            test_index = dataset[dataset['improve_chem_id'].isin(test_name)].index.tolist()
 
             f_train_w = csv.writer(open(root_idx_dir + '/train.index', 'a+'))
             f_val_w = csv.writer(open(root_idx_dir + '/val.index', 'a+'))
@@ -414,7 +484,7 @@ def get_idx_split_drug(dataset, k_splits=5):
     return split_idx
 
 
-class EarlyStopping():
+class EarlyStopping:
     """
     Parameters
     ----------
@@ -643,9 +713,9 @@ def scaffold_split(dataset, smiles_name_list, frac_train=0.6, frac_valid=0.2, fr
     assert len(set(train_idx).intersection(set(valid_idx))) == 0
     assert len(set(test_idx).intersection(set(valid_idx))) == 0
 
-    train_dataset = dataset[dataset['Drug name'].isin(train_idx)]
-    valid_dataset = dataset[dataset['Drug name'].isin(valid_idx)]
-    test_dataset = dataset[dataset['Drug name'].isin(test_idx)]
+    train_dataset = dataset[dataset['improve_chem_id'].isin(train_idx)]
+    valid_dataset = dataset[dataset['improve_chem_id'].isin(valid_idx)]
+    test_dataset = dataset[dataset['improve_chem_id'].isin(test_idx)]
 
     return train_dataset, valid_dataset, test_dataset
 
@@ -691,15 +761,16 @@ class MyDataset_SA(Dataset):
     def __init__(self, IC):
         super(MyDataset_SA, self).__init__()
         IC.reset_index(drop=True, inplace=True)
-        self.drug_name = IC['Drug name']
-        self.Cell_line_name = IC['DepMap_ID']
-        self.value = IC['IC50']
+        self.drug_name = IC['improve_chem_id']
+        self.Cell_line_name = IC['improve_sample_id']
+        self.value = IC['ic50']
 
     def __len__(self):
         return len(self.value)
 
     def __getitem__(self, index):
-        return (drug_name2idx_dict[self.drug_name[index]], cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
+        # return (drug_name2idx_dict[self.drug_name[index]], cell_id2idx_dict[self.Cell_line_name[index]], self.value[index])
+        return []
     
     
 def load_data_SA(args):
@@ -718,7 +789,8 @@ def load_graph_data_SA(args):
     cell_name2feature_dict = np.load('./data/CellLines_DepMap/CCLE_580_18281/census_706/cell_feature_all.npy',
                                         allow_pickle=True).item()
     drug_name = pd.read_csv("./data/Drugs/drug_smiles.csv").iloc[:, 0]
-    cell_idx2feature_dict = {u: cell_name2feature_dict[v] for u, v in cell_idx2id_dict.items()}
+    # cell_idx2feature_dict = {u: cell_name2feature_dict[v] for u, v in cell_idx2id_dict.items()}
+    cell_idx2feature_dict = {}
     drug_idx2graph_dict = {u: drug_id2graph_dict[v] for u, v in enumerate(drug_name)}
     drug_graph = [u for _, u in drug_idx2graph_dict.items()]
     cell_graph = [u for _, u in cell_idx2feature_dict.items()]

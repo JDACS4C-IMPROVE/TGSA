@@ -29,7 +29,7 @@ Cancel changes
 conda create -n TGSA python=3.6
 conda activate TGSA
 conda install -c rdkit rdkit
-pip install
+pip install \
 	fitlog \
 	torch==1.6.0 \
 	torch-cluster==1.5.9 \

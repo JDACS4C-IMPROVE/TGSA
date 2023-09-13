@@ -36,7 +36,7 @@ pip install \
 	torch-scatter==2.0.6 \
 	torch-sparse==0.6.9 \
 	torch-spline-conv==1.2.1 \
-	torch-geometric=1.6.1
+	torch-geometric==1.6.1
 ```
 
 # Implementation

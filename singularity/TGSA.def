@@ -9,6 +9,7 @@ From: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
 
 %environment
     PATH=$PATH:/usr/local/TGSA
+    MODEL_DIR=/usr/local/TGSA
 
 %post
     apt-get update

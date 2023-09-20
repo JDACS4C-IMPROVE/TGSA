@@ -1,4 +1,3 @@
 #!/bin/bash
 
-
-python ${IHOME}/TGSA/candle_train.py
+python ${MODEL_DIR}/candle_train.py

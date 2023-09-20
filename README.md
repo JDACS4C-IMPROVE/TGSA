@@ -35,12 +35,17 @@ Cancel changes
   pip install networkx==2.6.3   
   pip install h5py==3.8.0   
 
-# Implementation
+# run the model
 ## Step1: Data Preprocessing
   python pilot_preprocessing.py
 ## Step2: Model Training
   python [candle_train.py](candle_train.py)
 ## Step3: Model Testing
   python test.py
+
+# run in Singularity
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/preprocessing.sh
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/train.sh
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/test.sh
 
 

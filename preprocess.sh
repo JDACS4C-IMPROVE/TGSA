@@ -1,3 +1,6 @@
 #!/bin/bash
 
-python pilot_preprocessing.py
+export MODEL_DIR=/usr/local/TGSA
+
+python ${MODEL_DIR}/pilot_preprocessing.py
+

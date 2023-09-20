@@ -34,8 +34,8 @@ improve_globals = types.SimpleNamespace()
 # TODO:
 # This is CANDLE_DATA_DIR (or something...).
 # How this is going to be passed to the code?
-# improve_globals.data_root_dir = os.getenv("CANDLE_DATA_DIR")
-improve_globals.data_root_dir = "/tmp"
+improve_globals.data_root_dir = os.getenv("CANDLE_DATA_DIR")
+# improve_globals.data_root_dir = "/tmp"
 
 # Dir names corresponding to the primary input/output blocks in the pipeline
 # {}: input/output
@@ -86,7 +86,7 @@ else:
     # improve_globals.gene_mutation_fname = "cancer_mutation.txt"  # cancer feature
     improve_globals.smiles_file_name = "drug_SMILES.txt"  # drug feature
 
-improve_globals.main_data_dir = os.path.join(fdir, "csa_data")
+improve_globals.main_data_dir = os.path.join(improve_globals.data_root_dir , "csa_data")
 
 # TODO: add the other omics types
 # ...

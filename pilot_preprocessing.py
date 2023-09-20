@@ -205,7 +205,7 @@ if os.path.exists(cell_dict_save_to) and os.path.exists(edge_index_fn) and os.pa
 else:
     ##############################################################
 
-    gene_fn = os.path.join(data_root_dir, "raw_data", "enterez_NCBI_to_hugo_gene_symbol_march_2019.txt")
+    gene_fn = os.path.join("./data", "enterez_NCBI_to_hugo_gene_symbol_march_2019.txt")
 
     protein_info_gz_fn = os.path.join(data_root_dir, "raw_data", "x_data", "9606.protein.info.v11.5.txt.gz")
     protein_links_gz_fn = os.path.join(data_root_dir, "raw_data", "x_data", "9606.protein.links.detailed.v11.5.txt.gz")

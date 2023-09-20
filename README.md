@@ -13,7 +13,7 @@ Cancel changes
 - `main.py main` function for TGDRP (train or test);
 
 ## Requirements
-- Please install the environment using anaconda3;  
+- Create environment     
   conda create -n TGSA python=3.7
 - Install the necessary packages.
 - pip install git+https://github.com/ECP-CANDLE/candle_lib@develop   

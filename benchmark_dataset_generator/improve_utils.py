@@ -34,12 +34,8 @@ improve_globals = types.SimpleNamespace()
 # TODO:
 # This is CANDLE_DATA_DIR (or something...).
 # How this is going to be passed to the code?
-# improve_globals.main_data_dir = os.path.join(fdir, "csa_data")
-# improve_globals.main_data_dir = fdir/"improve_data_dir"
-# imp_globals.main_data_dir = fdir/"candle_data_dir"
-# improve_globals.data_root_dir = "/home/ac.jjiang/data_dir/TGSA"
 # improve_globals.data_root_dir = os.getenv("CANDLE_DATA_DIR")
-improve_globals.data_root_dir = fdir/"improve_data_dir"
+improve_globals.data_root_dir = "/tmp"
 
 # Dir names corresponding to the primary input/output blocks in the pipeline
 # {}: input/output

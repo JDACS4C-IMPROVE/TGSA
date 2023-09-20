@@ -7,8 +7,8 @@
 # arg 2 CANDLE_DATA_DIR
 # arg 3 CANDLE_CONFIG
 
-CANDLE_DATA_DIR = /candle_data_dir
-CUDA_VISIBLE_DEVICES = 1
+CANDLE_DATA_DIR=/candle_data_dir
+CUDA_VISIBLE_DEVICES=1
 ### Path and Name to your CANDLEized model's main Python script###
 
 # e.g. CANDLE_MODEL=graphdrp_baseline_pytorch.py

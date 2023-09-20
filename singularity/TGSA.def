@@ -64,7 +64,7 @@ From: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
 
     # setup model and executables
     cd /usr/local/
-    git clone https://github.com/smujiang/TGSA.git
+    git clone https://github.com/JDACS4C-IMPROVE/TGSA.git
     mkdir /candle_data_dir
     cp TGSA/data/enterez_NCBI_to_hugo_gene_symbol_march_2019.txt /candle_data_dir/
 

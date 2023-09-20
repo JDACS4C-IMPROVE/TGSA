@@ -1,3 +1,4 @@
 #!/bin/bash
 
-python candle_train.py
+
+python ~/TGSA/candle_train.py

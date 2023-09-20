@@ -36,6 +36,8 @@ Cancel changes
   pip install h5py==3.8.0   
 
 # run the model
+git clone  https://github.com/JDACS4C-IMPROVE/TGSA.git
+cd TGSA
 ## Step1: Data Preprocessing
   python pilot_preprocessing.py
 ## Step2: Model Training
@@ -43,7 +45,22 @@ Cancel changes
 ## Step3: Model Testing
   python test.py
 
-# run in Singularity
+# build Singularity image
+cd -
+git clone https://github.com/JDACS4C-IMPROVE/Singularity.git
+cd Singularity
+rm config/improve.env
+cp ./TGSA/singularity/improve.env ./Singularity/config/
+./setup
+
+rm definitions/*.def
+cd -
+cp ./TGSA/singularity/TGSA.def ./Singularity/definitions/
+
+make
+make deploy 
+
+# run built Singularity container
 singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/preprocessing.sh
 singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/train.sh
 singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/test.sh

@@ -5,7 +5,9 @@
 # arg 3 CANDLE_CONFIG
 
 # directly run on lambda0, add the following line
-#export CANDLE_DATA_DIR=/path_to_data_dir/TGSA
+#export
+CUDA_VISIBLE_DEVICES=1
+CANDLE_DATA_DIR=/candle_data_dir
 
 #
 ### Path to your CANDLEized model's main Python script###

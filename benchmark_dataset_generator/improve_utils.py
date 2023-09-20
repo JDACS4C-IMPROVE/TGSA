@@ -6,7 +6,7 @@ import pandas as pd
 from math import sqrt
 from scipy import stats
 
-fdir = Path(__file__).resolve().parent
+# fdir = Path(__file__).resolve().parent
 
 
 # -----------------------------------------------------------------------------
@@ -64,27 +64,27 @@ improve_globals.pred_col_name_suffix = "_pred"            # suffix to prediction
 improve_globals.DATASET = "Pilot1" # Yitan's dataset
 # improve_globals.DATASET = "Benchmark" # Alex's dataset
 
-if improve_globals.DATASET == "Pilot1":
-    fdir = os.path.join(improve_globals.data_root_dir, "benchmark_dataset_pilot1_generator")
 
-    improve_globals.y_file_name = "response.tsv"  # response data
-    improve_globals.copy_number_fname = "cancer_copy_number.tsv"  # cancer feature
-    improve_globals.gene_expression_fname = "cancer_gene_expression.tsv"
-    improve_globals.gene_mutation_fname = "cancer_mutation_count.tsv"  # cancer feature
-    # improve_globals.gene_mutation_fname = "cancer_mutation.parquet"  # cancer feature
-    improve_globals.smiles_file_name = "drug_SMILES.tsv"
-else:
-    fdir = os.path.join(improve_globals.data_root_dir, "benchmark_dataset_generator")
+fdir = os.path.join(improve_globals.data_root_dir, "benchmark_dataset_pilot1_generator")
 
-    improve_globals.y_file_name = "response.txt"  # response data
-    # Cancer sample features file names
-    improve_globals.copy_number_fname = "cancer_copy_number.txt"  # cancer feature
-    improve_globals.discretized_copy_number_fname = "cancer_discretized_copy_number.txt"  # cancer feature
-    improve_globals.dna_methylation_fname = "cancer_DNA_methylation.txt"  # cancer feature
-    improve_globals.gene_expression_fname = "cancer_gene_expression.txt"  # cancer feature
-    improve_globals.gene_mutation_fname = "cancer_mutation_count.txt"  # cancer feature
-    # improve_globals.gene_mutation_fname = "cancer_mutation.txt"  # cancer feature
-    improve_globals.smiles_file_name = "drug_SMILES.txt"  # drug feature
+improve_globals.y_file_name = "response.tsv"  # response data
+improve_globals.copy_number_fname = "cancer_copy_number.tsv"  # cancer feature
+improve_globals.gene_expression_fname = "cancer_gene_expression.tsv"
+improve_globals.gene_mutation_fname = "cancer_mutation_count.tsv"  # cancer feature
+# improve_globals.gene_mutation_fname = "cancer_mutation.parquet"  # cancer feature
+improve_globals.smiles_file_name = "drug_SMILES.tsv"
+#
+# fdir = os.path.join(improve_globals.data_root_dir, "benchmark_dataset_generator")
+#
+# improve_globals.y_file_name = "response.txt"  # response data
+# # Cancer sample features file names
+# improve_globals.copy_number_fname = "cancer_copy_number.txt"  # cancer feature
+# improve_globals.discretized_copy_number_fname = "cancer_discretized_copy_number.txt"  # cancer feature
+# improve_globals.dna_methylation_fname = "cancer_DNA_methylation.txt"  # cancer feature
+# improve_globals.gene_expression_fname = "cancer_gene_expression.txt"  # cancer feature
+# improve_globals.gene_mutation_fname = "cancer_mutation_count.txt"  # cancer feature
+# # improve_globals.gene_mutation_fname = "cancer_mutation.txt"  # cancer feature
+# improve_globals.smiles_file_name = "drug_SMILES.txt"  # drug feature
 
 improve_globals.main_data_dir = os.path.join(improve_globals.data_root_dir , "csa_data")
 

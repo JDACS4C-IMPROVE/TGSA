@@ -34,3 +34,7 @@ singularity exec --nv --bind /home/ac.jjiang/data_dir/TGSA:/candle_data_dir ./im
 singularity exec --nv --bind /home/ac.jjiang/data_dir/TGSA:/candle_data_dir ./images/TGSA.sif python /usr/local/TGSA/candle_train.py
 
 
+# updated singularity command 09/20/2023
+singularity exec --nv --bind /home/ac.jjiang/data_dir/TGSA:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/train.sh 1 /candle_data_dir
+
+

@@ -46,7 +46,7 @@ From: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
 
     wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_cluster-1.5.9-cp37-cp37m-linux_x86_64.whl
     wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_scatter-2.0.9-cp37-cp37m-linux_x86_64.whl
-    wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_sparse-0.6.12-cp37-cp37m-linux_x86_64.whl  
+    wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_sparse-0.6.12-cp37-cp37m-linux_x86_64.whl
     wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_spline_conv-1.2.1-cp37-cp37m-linux_x86_64.whl
     pip install *.whl
 
@@ -65,8 +65,6 @@ From: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
     # setup model and executables
     cd /usr/local/
     git clone https://github.com/JDACS4C-IMPROVE/TGSA.git
-    mkdir /candle_data_dir
-    cp TGSA/data/enterez_NCBI_to_hugo_gene_symbol_march_2019.txt /candle_data_dir/
 
     chmod +x /usr/local/TGSA/train.sh
     chmod +x /usr/local/TGSA/infer.sh

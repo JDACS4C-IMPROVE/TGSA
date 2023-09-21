@@ -10,7 +10,14 @@
 # arg 3 CANDLE_CONFIG
 
 ### Path to your CANDLEized model's main Python script###
-CANDLE_MODEL=/usr/local/TGSA/candle_train.py
+CANDLE_MODEL=candle_train.py
+
+# Set env if CANDLE_MODEL is not in same directory as this script
+IMPROVE_MODEL_DIR=${IMPROVE_MODEL_DIR:-$( dirname -- "$0" )}
+
+# Combine path and name and check if executable exists
+CANDLE_MODEL=${IMPROVE_MODEL_DIR}/${CANDLE_MODEL}
+
 DATA_PREPROCESSOR=/usr/local/TGSA/pilot_preprocessing.py
 
 if [ $# -lt 2 ] ; then

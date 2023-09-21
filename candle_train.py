@@ -140,9 +140,12 @@ def run(gParameters):
         fitlog.add_hyper_in_file(__file__)
 
         dt = datetime.datetime.now()
-        model_fn = os.path.join(output_root_dir, "trained_model",
-                                model._get_name() + "_{}_{:02d}-{:02d}-{:02d}.pth".format(dt.date(), dt.hour, dt.minute,
-                                                                                          dt.second))
+        model_save_path = os.path.join(output_root_dir, "trained_model")
+        model_fn = os.path.join(model_save_path, model._get_name() + "_{}_{:02d}-{:02d}-{:02d}.pth".format(dt.date(), dt.hour, dt.minute, dt.second))
+
+        if not os.path.exists(model_save_path):
+            os.makedirs(model_save_path)
+
         stopper = EarlyStopping(mode='lower', patience=patience, filename=model_fn)
         for epoch in range(1, epochs + 1):
             print("=====Epoch {}".format(epoch))

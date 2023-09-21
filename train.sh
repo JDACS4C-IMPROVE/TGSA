@@ -18,7 +18,7 @@ IMPROVE_MODEL_DIR=${IMPROVE_MODEL_DIR:-$( dirname -- "$0" )}
 # Combine path and name and check if executable exists
 CANDLE_MODEL=${IMPROVE_MODEL_DIR}/${CANDLE_MODEL}
 
-DATA_PREPROCESSOR=/usr/local/TGSA/pilot_preprocessing.py
+DATA_PREPROCESSOR=${IMPROVE_MODEL_DIR}/pilot_preprocessing.py
 
 if [ $# -lt 2 ] ; then
         echo "Illegal number of parameters"

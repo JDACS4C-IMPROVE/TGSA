@@ -33,6 +33,9 @@ pip install scikit-learn==1.0.2
 pip install scikit-image==0.16.2   
 pip install networkx==2.6.3   
 pip install h5py==3.8.0 
+
+pip install torch==1.9.0+cu102 torchvision==0.10.0+cu102 torchaudio===0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch-geometric==1.7.1
 ```
 
 ## Model running and testing

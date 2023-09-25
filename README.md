@@ -1,49 +1,88 @@
 # TGSA
 TGSA: Protein-Protein Association-Based Twin Graph Neural Networks for Drug Response Prediction with Similarity Augmentation
 
-# Overview
-Here we provide an implementation of Twin Graph neural networks with Similarity Augmentation (TGSA) in Pytorch and PyTorch Geometric. The repository is organised as follows:
-Cancel changes
-- `data/` contains the necessary dataset files;
-- `models/` contains the implementation of TGDRP and SA;
-- `TGDRP_weights` contains the trained weights of TGDRP;
-- `utils/` contains the necessary processing subroutines;
-- `preprocess_gene.py` preprocessing for genetic profiles;
-- `smiles2graph.py` construct molecular graphs based on SMILES;
-- `main.py main` function for TGDRP (train or test);
-
+Here we provide an implementation of Twin Graph neural networks with Similarity Augmentation (TGSA) in Pytorch and PyTorch Geometric. 
+To search for the optimal hyperparameters of the model, we made following changes based on the original repository: 
+1. Rewrite the data preprocessing steps to introduce extra dataset
+2. Candleize the main function of the model  
+3. Build singularity container based on the curated model
+4. TODO: Hyper Parameter Optimization (HPO)
 ## Requirements
-- Please install the environment using anaconda3;  
-  conda create -n TGSA python=3.6
-- Install the necessary packages.  
-  conda install -c rdkit rdkit  
-  pip install fitlog   
-  pip install torch (1.6.0)   
-  pip install torch-cluster (1.5.9) (https://pytorch-geometric.com/whl/)  
-  pip install torch-scatter (2.0.6) (https://pytorch-geometric.com/whl/)   
-  pip install torch-sparse (0.6.9) (https://pytorch-geometric.com/whl/)   
-  pip install torch-spline-conv (1.2.1) (https://pytorch-geometric.com/whl/)   
-  pip install torch-geometric (1.6.1)  
+- Create environment     
+```
+conda create -n TGSA python=3.7
+```
+  
+- Install the necessary packages.
+```
+pip install git+https://github.com/ECP-CANDLE/candle_lib@develop   
+wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_cluster-1.5.9-cp37-cp37m-linux_x86_64.whl   
+wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_scatter-2.0.9-cp37-cp37m-linux_x86_64.whl   
+wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_sparse-0.6.12-cp37-cp37m-linux_x86_64.whl         
+wget https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_spline_conv-1.2.1-cp37-cp37m-linux_x86_64.whl   
+pip install *.whl
 
-# Implementation
-## Step1: Data Preprocessing
-- `data/CellLines_DepMap/CCLE_580_18281/census_706/` - Raw genetic profiles from CCLE and the processed features. You can also preprocess your own data with `preprocess_gene.py`.
+pip install rdkit   
+pip install fitlog   
 
-- `data/similarity_augment/` - Directory `edge` contains edges of heterogeneous graphs; directory `dict` contains necessary data and dictionaries for mapping between drug data or cell line data. 
+pip install dgllife==0.3.2   
+pip install dgl==0.9.0   
+pip install numpy==1.21.5   
+pip install pandas==1.3.5   
+pip install scikit-learn==1.0.2   
+pip install scikit-image==0.16.2   
+pip install networkx==2.6.3   
+pip install h5py==3.8.0 
 
-- `data/Drugs/drug_smiles.csv` - SMILES for 170 drugs. You can generate pyg graph object with `smiles2graph.py`
+pip install torch==1.9.0+cu102 torchvision==0.10.0+cu102 torchaudio===0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch-geometric==1.7.1
+```
 
-- `data/PANCANCER_IC_82833_580_170.csv` - There are 82833 ln(IC50) values across 580 cel lines and 170 drugs.
+## Model running and testing
+``` python
+conda activate TGSA
+git clone  https://github.com/JDACS4C-IMPROVE/TGSA.git
+cd TGSA
+chmod +x *.sh
+######################
+# Data Preprocessing
+python pilot_preprocessing.py
+# Model Training
+python candle_train.py
+# Model Testing
+python test.py
 
-- `data/9606.protein.links.detailed.v11.0.txt` and `data/9606.protein.info.v11.0.txt` - Extracted from https://stringdb-static.org/download/protein.links.detailed.v11.0/9606.protein.links.detailed.v11.0.txt.gz
+######################
+./train.sh 1 /tmp
 
-## Step2: Model Training/Testing
-- You can run `python main.py --mode "train"` to train TGDRP or run `python main.py --mode "test"` to test trained TGDRP.
+```
+## Build Singularity image
+```
+cd -
+git clone https://github.com/JDACS4C-IMPROVE/Singularity.git
+cd Singularity
+rm config/improve.env
+cp ./TGSA/singularity/improve.env ./Singularity/config/
+./setup
 
-## Step3: Similarity Augment
-- First, you can run `heterogeneous_graph.py` to generate edges of heterogeneous graphs.
+rm definitions/*.def
+cd -
+cp ./TGSA/singularity/TGSA.def ./Singularity/definitions/
 
-- Then, you can run `main_SA.py` to generate node features of heterogeneous graphs using two GNNs from TGDRP/TGDRP_pre and to fine-tune sequentially the remained parameters from TGDRP/TGDRP_pre.  To be specific, you can use the instruction `python main_SA.py --mode "train"/"test" --pretrain 0/1` to fine-tune TGDRP/TGDRP_pre or to test fine-tuned SA/SA_pre.  
+make   
+make deploy 
+```
 
-# License
-MIT
+## Run built Singularity container
+```
+# Download and prepreprocess data (optional, as the train.sh script will call this pre)
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/preprocessing.sh 4 /candle_data_dir
+# Train the model
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/train.sh 4 /candle_data_dir
+# Test the model
+singularity exec --nv --bind /tmp:/candle_data_dir ./images/TGSA.sif /usr/local/TGSA/test.sh 
+```
+## Hyper Parameter Optimization (HPO)
+
+
+

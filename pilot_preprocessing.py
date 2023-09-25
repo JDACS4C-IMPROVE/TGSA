@@ -1,5 +1,4 @@
 import random
-
 import candle
 import numpy as np
 import os, sys
@@ -15,7 +14,7 @@ from torch_geometric.data import Data
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.impute import SimpleImputer
 from benchmark_dataset_generator.improve_utils import *
-
+from pathlib import Path
 '''
 # Running notes
 # please note, the versions of dependencies are complicate, it is hard to make all things compatible.
@@ -204,8 +203,8 @@ if os.path.exists(cell_dict_save_to) and os.path.exists(edge_index_fn) and os.pa
     edge_index = np.load(edge_index_fn)
 else:
     ##############################################################
-
-    gene_fn = os.path.join(data_root_dir, "raw_data", "enterez_NCBI_to_hugo_gene_symbol_march_2019.txt")
+    project_dir = Path(__file__).resolve().parent
+    gene_fn = os.path.join(project_dir, "data", "enterez_NCBI_to_hugo_gene_symbol_march_2019.txt")
 
     protein_info_gz_fn = os.path.join(data_root_dir, "raw_data", "x_data", "9606.protein.info.v11.5.txt.gz")
     protein_links_gz_fn = os.path.join(data_root_dir, "raw_data", "x_data", "9606.protein.links.detailed.v11.5.txt.gz")

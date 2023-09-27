@@ -81,8 +81,7 @@ def run(gParameters):
     batch_size = gParameters["batch_size"] #128
     lr = gParameters["lr"] # 0.0001
     weight_decay = gParameters["weight_decay"] #0
-    epochs = 1
-    # epochs = gParameters["epochs"] #300
+    epochs = gParameters["epochs"] #300
     patience = gParameters["patience"] #3
     setup = gParameters["setup"] #'known'
     pretrain = gParameters["pretrain"] #1

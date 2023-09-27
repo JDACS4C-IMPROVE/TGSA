@@ -146,6 +146,7 @@ def run(gParameters):
         if not os.path.exists(model_save_path):
             os.makedirs(model_save_path)
 
+        best_rmse = 0
         stopper = EarlyStopping(mode='lower', patience=patience, filename=model_fn)
         for epoch in range(1, epochs + 1):
             print("=====Epoch {}".format(epoch))
@@ -161,6 +162,7 @@ def run(gParameters):
             early_stop = stopper.step(rmse, model)
 
             if early_stop:
+                best_rmse = rmse
                 break
 
         print('EarlyStopping! Finish training!')
@@ -168,7 +170,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(rmse)) # to match the requirement of Hyper Parameter Optimization
+        print("\nIMPROVE_RESULT:\t{}\n".format(best_rmse)) # to match the requirement of Hyper Parameter Optimization
 
 
 def main():

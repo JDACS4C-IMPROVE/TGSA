@@ -69,7 +69,8 @@ def load_IMPROVE_pre_split_data(rs_df_split, drug_dict, cell_dict, edge_index, b
 
 def load_IMPROVE_data(IC, drug_dict, cell_dict, edge_index, setup, model, batch_size):
     if setup == 'known':
-        train_set, val_test_set = train_test_split(IC, test_size=0.2, random_state=42)
+        IC_sample = IC.sample(frac=0.05, random_state=42)
+        train_set, val_test_set = train_test_split(IC_sample, test_size=0.2, random_state=42)
         val_set, test_set = train_test_split(val_test_set, test_size=0.5, random_state=42)
 
     elif setup == 'leave_drug_out':

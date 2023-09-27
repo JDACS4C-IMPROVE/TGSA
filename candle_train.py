@@ -163,42 +163,10 @@ def run(gParameters):
                 break
 
         print('EarlyStopping! Finish training!')
-        print('Testing...')
-        stopper.load_checkpoint(model)
-
-        train_rmse, train_MAE, train_r2, train_r = validate(model, train_loader, device)
-        val_rmse, val_MAE, val_r2, val_r = validate(model, val_loader, device)
-        test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, device)
-        print('Train reslut: rmse:{} r2:{} r:{}'.format(train_rmse, train_r2, train_r))
-        print('Val reslut: rmse:{} r2:{} r:{}'.format(val_rmse, val_r2, val_r))
-        print('Test reslut: rmse:{} r2:{} r:{}'.format(test_rmse, test_r2, test_r))
-
-        fitlog.add_best_metric(
-            {'epoch': epoch - patience,
-             "train": {'RMSE': train_rmse, 'MAE': train_MAE, 'pearson': train_r, "R2": train_r2},
-             "valid": {'RMSE': stopper.best_score, 'MAE': val_MAE, 'pearson': val_r, 'R2': val_r2},
-             "test": {'RMSE': test_rmse, 'MAE': test_MAE, 'pearson': test_r, 'R2': test_r2}})
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
 
-    elif mode == 'test':
-        test_start = time.time()
-        weight = "TGDRP_pre" if pretrain else "TGDRP"
-
-        pth_fn = os.path.join(output_root_dir, 'trained_model', '{}.pth'.format(weight))
-        if not os.path.exists(pth_fn):
-            pth_dir = os.path.join(output_root_dir, 'trained_model')
-            list_of_files = glob.glob(os.path.join(pth_dir, "*.pth"))
-            latest_file = max(list_of_files, key=os.path.getctime)  # get the newest file
-            pth_fn = os.path.join(pth_dir, latest_file)
-        model.load_state_dict(torch.load(pth_fn, map_location=device)['model_state_dict'])
-        test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, device)
-        print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 4), round(test_MAE, 4),
-                                                             round(test_r2, 4), round(test_r, 4)))
-        test_end = time.time()
-        test_total_time = test_end - test_start
-        print("Testing time:%s s \n s" % str(test_total_time))
 
 def main():
     gParams = initialize_parameters()

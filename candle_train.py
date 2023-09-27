@@ -17,7 +17,7 @@ from torch_geometric.nn import graclus, max_pool
 import time
 import datetime
 from benchmark_dataset_generator.improve_utils import *
-
+import json
 import candle
 
 def initialize_parameters():
@@ -147,6 +147,7 @@ def run(gParameters):
         if not os.path.exists(model_save_path):
             os.makedirs(model_save_path)
 
+        best_rmse = float('inf') # Start with a high value since we want to minimize RMSE
         stopper = EarlyStopping(mode='lower', patience=patience, filename=model_fn)
         for epoch in range(1, epochs + 1):
             print("=====Epoch {}".format(epoch))
@@ -155,53 +156,24 @@ def run(gParameters):
             fitlog.add_loss(train_loss.item(), name='Train MSE', step=epoch)
 
             print('Evaluating...')
-            rmse, _, _, _ = validate(model, val_loader, device)
+            rmse, MAE, r2, r = validate(model, val_loader, device)
+            if rmse < best_rmse:  # Check if current RMSE is better than the best
+              best_rmse = rmse  # Update the best RMSE
             print("Validation rmse:{}".format(rmse))
             fitlog.add_metric({'val': {'RMSE': rmse}}, step=epoch)
 
             early_stop = stopper.step(rmse, model)
+
             if early_stop:
                 break
 
         print('EarlyStopping! Finish training!')
-        print('Testing...')
-        stopper.load_checkpoint(model)
 
-        train_rmse, train_MAE, train_r2, train_r = validate(model, train_loader, device)
-        val_rmse, val_MAE, val_r2, val_r = validate(model, val_loader, device)
-        test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, device)
-        print('Train result: rmse:{} r2:{} r:{}'.format(train_rmse, train_r2, train_r))
-        print('Val result: rmse:{} r2:{} r:{}'.format(val_rmse, val_r2, val_r))
-        print('Test result: rmse:{} r2:{} r:{}'.format(test_rmse, test_r2, test_r))
-
-        fitlog.add_best_metric(
-            {'epoch': epoch - patience,
-             "train": {'RMSE': train_rmse, 'MAE': train_MAE, 'pearson': train_r, "R2": train_r2},
-             "valid": {'RMSE': stopper.best_score, 'MAE': val_MAE, 'pearson': val_r, 'R2': val_r2},
-             "test": {'RMSE': test_rmse, 'MAE': test_MAE, 'pearson': test_r, 'R2': test_r2}})
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
+        print("\nIMPROVE_RESULT:\t{}\n".format(best_rmse)) # to match the requirement of Hyper Parameter Optimization
 
-    elif mode == 'test':
-        test_start = time.time()
-        weight = "TGDRP_pre" if pretrain else "TGDRP"
-
-        pth_fn = os.path.join(output_root_dir, 'trained_model', '{}.pth'.format(weight))
-        if not os.path.exists(pth_fn):
-            pth_dir = os.path.join(output_root_dir, 'trained_model')
-            list_of_files = glob.glob(os.path.join(pth_dir, "*.pth"))
-            latest_file = max(list_of_files, key=os.path.getctime)  # get the newest file
-            pth_fn = os.path.join(pth_dir, latest_file)
-        model.load_state_dict(torch.load(pth_fn, map_location=device)['model_state_dict'])
-        test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, device)
-        print('Test RMSE: {}, MAE: {}, R2: {}, R: {}'.format(round(test_rmse.item(), 4), round(test_MAE, 4),
-                                                             round(test_r2, 4), round(test_r, 4)))
-        test_end = time.time()
-        test_total_time = test_end - test_start
-        print("Testing time:%s s \n" % str(test_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
 
 def main():
     gParams = initialize_parameters()

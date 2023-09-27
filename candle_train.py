@@ -17,7 +17,7 @@ from torch_geometric.nn import graclus, max_pool
 import time
 import datetime
 from benchmark_dataset_generator.improve_utils import *
-
+import json
 import candle
 
 def initialize_parameters():
@@ -154,11 +154,16 @@ def run(gParameters):
             fitlog.add_loss(train_loss.item(), name='Train MSE', step=epoch)
 
             print('Evaluating...')
-            rmse, _, _, _ = validate(model, val_loader, device)
+            rmse, MAE, r2, r = validate(model, val_loader, device)
             print("Validation rmse:{}".format(rmse))
             fitlog.add_metric({'val': {'RMSE': rmse}}, step=epoch)
 
             early_stop = stopper.step(rmse, model)
+            # Supervisor HPO
+            print("\nIMPROVE_RESULT val_loss:\t{}\n".format(rmse))
+            with open(Path(output_root_dir) / "scores.json", "w", encoding="utf-8") as f:
+                json.dump([rmse, MAE, r2, r], f, ensure_ascii=False, indent=4)
+
             if early_stop:
                 break
 

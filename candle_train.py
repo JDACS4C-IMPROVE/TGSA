@@ -81,7 +81,8 @@ def run(gParameters):
     batch_size = gParameters["batch_size"] #128
     lr = gParameters["lr"] # 0.0001
     weight_decay = gParameters["weight_decay"] #0
-    epochs = gParameters["epochs"] #300
+    epochs = 1
+    # epochs = gParameters["epochs"] #300
     patience = gParameters["patience"] #3
     setup = gParameters["setup"] #'known'
     pretrain = gParameters["pretrain"] #1
@@ -181,6 +182,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
+        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 4))) # to match the requirement of Hyper Parameter Optimization
 
     elif mode == 'test':
         test_start = time.time()
@@ -198,7 +200,8 @@ def run(gParameters):
                                                              round(test_r2, 4), round(test_r, 4)))
         test_end = time.time()
         test_total_time = test_end - test_start
-        print("Testing time:%s s \n s" % str(test_total_time))
+        print("Testing time:%s s \n" % str(test_total_time))
+        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 4))) # to match the requirement of Hyper Parameter Optimization
 
 def main():
     gParams = initialize_parameters()

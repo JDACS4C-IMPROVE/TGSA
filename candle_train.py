@@ -169,9 +169,9 @@ def run(gParameters):
         train_rmse, train_MAE, train_r2, train_r = validate(model, train_loader, device)
         val_rmse, val_MAE, val_r2, val_r = validate(model, val_loader, device)
         test_rmse, test_MAE, test_r2, test_r = validate(model, test_loader, device)
-        print('Train reslut: rmse:{} r2:{} r:{}'.format(train_rmse, train_r2, train_r))
-        print('Val reslut: rmse:{} r2:{} r:{}'.format(val_rmse, val_r2, val_r))
-        print('Test reslut: rmse:{} r2:{} r:{}'.format(test_rmse, test_r2, test_r))
+        print('Train result: rmse:{} r2:{} r:{}'.format(train_rmse, train_r2, train_r))
+        print('Val result: rmse:{} r2:{} r:{}'.format(val_rmse, val_r2, val_r))
+        print('Test result: rmse:{} r2:{} r:{}'.format(test_rmse, test_r2, test_r))
 
         fitlog.add_best_metric(
             {'epoch': epoch - patience,
@@ -181,6 +181,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
+        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
 
     elif mode == 'test':
         test_start = time.time()
@@ -198,7 +199,8 @@ def run(gParameters):
                                                              round(test_r2, 4), round(test_r, 4)))
         test_end = time.time()
         test_total_time = test_end - test_start
-        print("Testing time:%s s \n s" % str(test_total_time))
+        print("Testing time:%s s \n" % str(test_total_time))
+        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
 
 def main():
     gParams = initialize_parameters()

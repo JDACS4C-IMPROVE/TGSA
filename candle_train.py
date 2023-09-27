@@ -168,9 +168,11 @@ def run(gParameters):
                 break
 
         print('EarlyStopping! Finish training!')
+
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
+        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
 
 
 def main():

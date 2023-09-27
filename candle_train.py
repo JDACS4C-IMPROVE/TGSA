@@ -146,6 +146,7 @@ def run(gParameters):
         if not os.path.exists(model_save_path):
             os.makedirs(model_save_path)
 
+        best_rmse = float('inf') # Start with a high value since we want to minimize RMSE
         stopper = EarlyStopping(mode='lower', patience=patience, filename=model_fn)
         for epoch in range(1, epochs + 1):
             print("=====Epoch {}".format(epoch))
@@ -155,14 +156,12 @@ def run(gParameters):
 
             print('Evaluating...')
             rmse, MAE, r2, r = validate(model, val_loader, device)
+            if rmse < best_rmse:  # Check if current RMSE is better than the best
+              best_rmse = rmse  # Update the best RMSE
             print("Validation rmse:{}".format(rmse))
             fitlog.add_metric({'val': {'RMSE': rmse}}, step=epoch)
 
             early_stop = stopper.step(rmse, model)
-            # Supervisor HPO
-            print("\nIMPROVE_RESULT val_loss:\t{}\n".format(rmse))
-            with open(Path(output_root_dir) / "scores.json", "w", encoding="utf-8") as f:
-                json.dump([rmse, MAE, r2, r], f, ensure_ascii=False, indent=4)
 
             if early_stop:
                 break
@@ -172,7 +171,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
+        print("\nIMPROVE_RESULT:\t{}\n".format(best_rmse)) # to match the requirement of Hyper Parameter Optimization
 
 
 def main():

@@ -159,10 +159,6 @@ def run(gParameters):
             fitlog.add_metric({'val': {'RMSE': rmse}}, step=epoch)
 
             early_stop = stopper.step(rmse, model)
-            # Supervisor HPO
-            print("\nIMPROVE_RESULT val_loss:\t{}\n".format(rmse))
-            with open(Path(output_root_dir) / "scores.json", "w", encoding="utf-8") as f:
-                json.dump([rmse, MAE, r2, r], f, ensure_ascii=False, indent=4)
 
             if early_stop:
                 break
@@ -172,7 +168,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(round(val_rmse.item(), 12))) # to match the requirement of Hyper Parameter Optimization
+        print("\nIMPROVE_RESULT:\t{}\n".format(rmse)) # to match the requirement of Hyper Parameter Optimization
 
 
 def main():

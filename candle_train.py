@@ -146,7 +146,12 @@ def run(gParameters):
         if not os.path.exists(model_save_path):
             os.makedirs(model_save_path)
 
-        best_rmse = float('inf') # Start with a high value since we want to minimize RMSE
+        val_loss = {"RMSE": float('inf'),
+                    "MAE": float('inf'),
+                    "R2": 0,
+                    "R": 0
+                   }
+        # Start with a high value since we want to minimize RMSE
         stopper = EarlyStopping(mode='lower', patience=patience, filename=model_fn)
         for epoch in range(1, epochs + 1):
             print("=====Epoch {}".format(epoch))
@@ -156,13 +161,13 @@ def run(gParameters):
 
             print('Evaluating...')
             rmse, MAE, r2, r = validate(model, val_loader, device)
-            if rmse < best_rmse:  # Check if current RMSE is better than the best
-              best_rmse = rmse  # Update the best RMSE
+            val_loss["RMSE"] = rmse
+            val_loss["MAE"] = MAE
+            val_loss["R2"] = r2
+            val_loss["R"] = r
             print("Validation rmse:{}".format(rmse))
             fitlog.add_metric({'val': {'RMSE': rmse}}, step=epoch)
-
             early_stop = stopper.step(rmse, model)
-
             if early_stop:
                 break
 
@@ -171,7 +176,7 @@ def run(gParameters):
         train_end = time.time()
         train_total_time = train_end - train_start
         print("Training time: %s s \n" % str(train_total_time))
-        print("\nIMPROVE_RESULT:\t{}\n".format(best_rmse)) # to match the requirement of Hyper Parameter Optimization
+        print("\nIMPROVE_RESULT:\t{}\n".format(val_loss.item())) # to match the requirement of Hyper Parameter Optimization
 
 
 def main():

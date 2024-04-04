@@ -45,6 +45,7 @@ git clone  https://github.com/JDACS4C-IMPROVE/TGSA.git
 cd TGSA
 chmod +x *.sh
 ######################
+export CANDLE_DATA_DIR=/folder_you_have_writing_permission/TGSA_data
 # Data Preprocessing
 python pilot_preprocessing.py
 # Model Training

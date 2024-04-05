@@ -79,14 +79,35 @@ def get_predefine_cluster(edge_index, save_fn, selected_gene_num, device):
 
     return cluster_predefine
 def run(config: dict) -> float:
-    patience = config["patience"]
-    device = config["device"]
+    default_config = {}
+    default_config["layer_drug"] = 3
+    default_config["dim_drug"] = 128
+    default_config["hidden_dim"] = 8
+    default_config["cell_feature_num"] = 3
+    default_config["layer"] = 3
+    default_config["dim_cell"] = 8
+    # default_config["dropout_ratio"] = 0.2
+    default_config["patience"] = 3
+    default_config["device"] = 'cuda:1'
+    default_config["weight_path"] = 0
+    default_config["output_root_dir"] = ""
+    default_config["epochs"] = 300
+    default_config["weight_decay"]=0
+    data_root_dir = "/homes/ac.jjiang/data_dir/TGSA"
+
+    epochs = default_config["epochs"]
+    patience = default_config["patience"]
+    # device = default_config["device"]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    weight_decay = default_config["weight_decay"]
+    weight_path = default_config["weight_path"]
+    output_root_dir = default_config["output_root_dir"]
+
+    default_config["dropout_ratio"] = config["dropout_ratio"]
+    default_config["batch_size"] = config["batch_size"]
+
     batch_size = config["batch_size"]
     lr = config["lr"]
-    epochs = config["epochs"]
-    weight_decay = config["weight_decay"]
-    weight_path = config["weight_path"]
-    output_root_dir = config["output_root_dir"]
 
     pretrain = True
     fp = open(os.path.join(improve_globals.main_data_dir, "drug_feature_graph.pkl"), "rb")
@@ -104,7 +125,7 @@ def run(config: dict) -> float:
     fp.close()
     IC = pd.read_csv(os.path.join(improve_globals.main_data_dir, 'drug_response_with_IC50.csv'), sep=",")
 
-    train_loader, val_loader, test_loader, edge_index, selected_genes = get_data_loader_TGSA(IC, drug_dict, cell_dict, edge_index, batch_size)
+    train_loader, val_loader, test_loader = get_data_loader_TGSA(IC, drug_dict, cell_dict, edge_index, batch_size)
     print("All data: %d, training: %d, validation: %d, testing: %d " % (
     len(IC), len(train_loader.dataset), len(val_loader.dataset), len(test_loader.dataset)))
     print('mean degree of gene graph:{}'.format(len(edge_index[0]) / len(selected_genes)))
@@ -112,14 +133,14 @@ def run(config: dict) -> float:
     predefine_cluster_fn = os.path.join(data_root_dir, 'cluster_predefine_PPI_0.95.npy')
     cluster_predefine = get_predefine_cluster(edge_index, predefine_cluster_fn, len(selected_genes), device)
 
-    model = TGDRP(cluster_predefine, config)
+    model = TGDRP(cluster_predefine, default_config)
     model.to(device)
 
     train_start = time.time()
 
-    if pretrain and weight_path != '':
-        pretrain_model_fn = os.path.join(output_root_dir, 'model_pretrain', '{}.pth'.format(weight_path))
-        model.GNN_drug.load_state_dict(torch.load(pretrain_model_fn)['model_state_dict'])
+    # if pretrain and weight_path != '':
+    #     pretrain_model_fn = os.path.join(output_root_dir, 'model_pretrain', '{}.pth'.format(weight_path))
+    #     model.GNN_drug.load_state_dict(torch.load(pretrain_model_fn)['model_state_dict'])
 
     criterion = nn.MSELoss()
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -167,28 +188,13 @@ def run(config: dict) -> float:
 
 
 if __name__ == "__main__":
-    config = {}
-    config["layer_drug"] = 3
-    config["dim_drug"] = 128
-    config["cell_feature_num"] = 3
-    config["layer_cell"] = 3
-    config["dim_cell"] = 8
-    config["dropout_ratio"] = 0.2
 
-    config["patience"] = 3
-    config["device"] = 'cuda:1'
-    config["batch_size"] = 8
-    config["lr"] = 0.0001
-    config["epochs"] = 300
-    config["weight_path"] = 0
-
-    config["output_root_dir"] = ""
 
     # define the variable you want to optimize
     problem = HpProblem()
-    problem.add_hyperparameter((0.0, 0.5, "log-uniform"), "dropout_ratio")  #
+    problem.add_hyperparameter((0.1, 0.7, "log-uniform"), "dropout_ratio")  #
     problem.add_hyperparameter([8, 16, 32, 64, 128], "batch_size")
-    problem.add_hyperparameter((0.001, 0.00001, "log-uniform"), "lr")
+    problem.add_hyperparameter((0.00001, 0.01, "log-uniform"), "lr")
 
     # define the evaluator to distribute the computation
     evaluator = Evaluator.create(
